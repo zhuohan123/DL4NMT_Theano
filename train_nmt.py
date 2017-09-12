@@ -25,6 +25,8 @@ def main():
                         help='Model save frequency, default is %(default)s')
     parser.add_argument('--dev_bleu_freq', action='store', default=20000, type=int, dest='dev_bleu_freq',
                         help='Get dev set BLEU frequency, default is %(default)s')
+    parser.add_argument('--bleu_start_id', action='store', default=0, type=int, dest='bleu_start_id',
+                        help='ID to start get BLEU, default is %(default)s')
     parser.add_argument('--dim', action='store', default=512, type=int, dest='dim',
                         help='Dim of hidden units, default is %(default)s')
     parser.add_argument('--bs', action='store', default=128, type=int, dest='batch_size',
@@ -183,7 +185,11 @@ def main():
 
     # If dataset is not 'en-fr', old value of dataset options like 'args.train1' will be omitted
     if args.dataset != 'en-fr':
-        args.train1, args.train2, args.small1, args.small2, args.valid1, args.valid2, valid3, test1, test2, args.dic1, args.dic2 = \
+        args.train1, args.train2, \
+        args.small1, args.small2, \
+        args.valid1, args.valid2, valid3, \
+        test1, test2, test3, \
+        args.dic1, args.dic2 = \
             Datasets[args.dataset]
     zhen = 'zh' in args.dataset and 'en' in args.dataset
 
@@ -240,6 +246,7 @@ def main():
         dispFreq=1,
         saveFreq=args.save_freq,
         validFreq=args.valid_freq,
+        bleu_start_id=args.bleu_start_id,
         datasets=('./data/train/{}'.format(args.train1),
                   './data/train/{}'.format(args.train2)),
         valid_datasets=('./data/dev/{}'.format(args.valid1),
@@ -249,6 +256,9 @@ def main():
                               './data/train/{}'.format(args.small2)),
         vocab_filenames=('./data/dic/{}'.format(args.dic1),
                          './data/dic/{}'.format(args.dic2)),
+        test_datasets=('./data/test/{}'.format(test1),
+                       './data/test/{}'.format(test2),
+                       './data/test/{}'.format(test3),),
         task=args.dataset,
         use_dropout = args.dropout, #dropout ratio for rnn hidden
         dropout_out = args.dropout_out, #dropout ratio for hidden before softmax layer

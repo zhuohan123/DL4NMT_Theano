@@ -223,7 +223,7 @@ def translate_whole(model, f_init, f_next, trng, dictionary, dictionary_target, 
     n_words_src = kwargs.pop('n_words_src', model.O['n_words_src'])
     zhen = kwargs.pop('zhen', False)
     batch_size = kwargs.pop('batch_size', 30)
-    echo = kwargs.pop('echo', False)
+    echo = kwargs.pop('echo', True)
     #must be in batch mode now
 
     word_dict, word_idict, word_idict_trg, all_src_num_blocks, all_src_str, all_src_hotfixes, m_block \
@@ -306,7 +306,7 @@ def translate_dev_get_bleu(model, f_init, f_next, trng, use_noise, **kwargs):
     translated_str_list, all_cands_trans_str = translate_whole(
         model, f_init, f_next, trng,
         dic1, dic2, dev1,
-        k=3, batch_mode = True,
+        k=4, batch_mode = True,
         zhen = zhen, src_trg_table = st_table if zhen else None,
     )
     translated_str = '\n'.join(translated_str_list)

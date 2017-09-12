@@ -91,10 +91,13 @@ def train(dim_word=100,  # word vector dimensionality
           saveFreq=1000,  # save the parameters after every saveFreq updates
           validFreq=2500,
           dev_bleu_freq=20000,
+          bleu_start_id=0,
           datasets=('/data/lisatmp3/chokyun/europarl/europarl-v7.fr-en.en.tok',
                     '/data/lisatmp3/chokyun/europarl/europarl-v7.fr-en.fr.tok'),
           valid_datasets=('./data/dev/dev_en.tok',
                           './data/dev/dev_fr.tok'),
+          test_datasets=('',
+                         ''),
           small_train_datasets=('./data/train/small_en-fr.en',
                                 './data/train/small_en-fr.fr'),
           use_dropout=False,
@@ -232,6 +235,12 @@ Start Time = {}
         valid_batch_size, n_words_src, n_words,k = io_buffer_size,
     )
 
+    test_iterator = TextIterator(
+        test_datasets[0], test_datasets[1],
+        vocab_filenames[0], vocab_filenames[1],
+        valid_batch_size, n_words_src, n_words, k=io_buffer_size,
+    )
+
     small_train_iterator = TextIterator(
         small_train_datasets[0], small_train_datasets[1],
         vocab_filenames[0], vocab_filenames[1],
@@ -359,10 +368,22 @@ Start Time = {}
         for t_value in itemlist(model.P):
             t_value.set_value(t_value.get_value() / workers_cnt)
 
-    best_valid_cost = validation(valid_iterator, f_cost, use_noise)
     small_train_cost = validation(small_train_iterator, f_cost, use_noise)
-    best_bleu = translate_dev_get_bleu(model, f_init, f_next, trng, use_noise, zhen = zhen) if reload_ else 0
-    message('Worker id {}, Initial Valid cost {:.5f} Small train cost {:.5f} Valid BLEU {:.2f}'.format(worker_id, best_valid_cost, small_train_cost, best_bleu))
+    best_valid_cost = validation(valid_iterator, f_cost, use_noise)
+    test_cost = validation(test_iterator, f_cost, use_noise)
+    message('Worker {} Small train cost {:.5f} Valid cost {:.5f} Test cost {:.5f} Bad count {} at iteration {}'
+            .format(worker_id, small_train_cost, best_valid_cost, test_cost, bad_counter, uidx))
+    sys.stdout.flush()
+
+    if uidx >= bleu_start_id:
+        best_bleu = translate_dev_get_bleu(model, f_init, f_next, trng, use_noise, zhen = zhen) if reload_ else 0
+        message('Worker {} Valid BLEU {} at iteration {}'.format(worker_id, best_bleu, uidx))
+        sys.stdout.flush()
+
+        test_bleu = translate_dev_get_bleu(model, f_init, f_next, trng, use_noise,
+                                           dev1=test_datasets[0], dev2=test_datasets[2], zhen = zhen) if reload_ else 0
+        message('Worker {} Test BLEU {} at iteration {}'.format(worker_id, test_bleu, uidx))
+        sys.stdout.flush()
 
     best_bleu = 0
     best_valid_cost = 1e5 #do not let initial state affect the training process
@@ -529,10 +550,23 @@ Start Time = {}
 
             if np.mod(uidx, validFreq) == 0:
                 valid_cost = validation(valid_iterator, f_cost, use_noise)
+                test_cost = validation(test_iterator, f_cost, use_noise)
                 small_train_cost = validation(small_train_iterator, f_cost, use_noise)
-                valid_bleu = translate_dev_get_bleu(model, f_init, f_next, trng, use_noise)
-                message('Worker {} Valid cost {:.5f} Small train cost {:.5f} Valid BLEU {:.2f} Bad count {}'.format(worker_id, valid_cost, small_train_cost, valid_bleu, bad_counter))
+                message('Worker {} Small train cost {:.5f} Valid cost {:.5f} Test cost {:.5f} Bad count {} at iteration {}'
+                    .format(worker_id, small_train_cost, valid_cost, test_cost, bad_counter, uidx))
                 sys.stdout.flush()
+
+                if uidx >= bleu_start_id:
+                    valid_bleu = translate_dev_get_bleu(model, f_init, f_next, trng, use_noise, zhen = zhen)
+                    message('Worker {} Valid BLEU {} at iteration {}'.format(worker_id, valid_bleu, uidx))
+                    sys.stdout.flush()
+
+                    test_bleu = translate_dev_get_bleu(model, f_init, f_next, trng, use_noise,
+                                                       dev1=test_datasets[0], dev2=test_datasets[2], zhen = zhen)
+                    message('Worker {} Test BLEU {} at iteration {}'.format(worker_id, test_bleu, uidx))
+                    sys.stdout.flush()
+                else:
+                    valid_bleu = test_bleu = 0.0
 
                 # Fine-tune based on dev cost or bleu
                 if fine_tune_patience > 0:
@@ -556,7 +590,7 @@ Start Time = {}
                                 t_value.set_value(t_value.get_value() / workers_cnt)
                         #dump the best model so far, including the immediate file
                         if worker_id == 0:
-                            message('Dump the the best model so far at uidx {}'.format(uidx))
+                            message('Dump the best model so far at uidx {}'.format(uidx))
                             model.save_model(saveto, history_errs)
                             dump_optimizer_imm_data(optimizer, imm_shared, dump_imm, saveto)
                     else:

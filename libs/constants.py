@@ -142,7 +142,7 @@ Datasets = {
        'train.de-en.bpe.25000.de', 'train.de-en.bpe.25000.en',
         'small_train.de-en.bpe.25000.de', 'small_train.de-en.bpe.25000.en',
         'dev.de-en.bpe.25000.de', 'dev.de-en.bpe.25000.en','dev.de-en.en',
-        'test.de-en.bpe.25000.de', 'test.de-en.en',
+        'test.de-en.bpe.25000.de', 'test.de-en.bpe.25000.en', 'test.de-en.en',
         'de-en_vocab.bpe.25000.pkl', 'de-en_vocab.bpe.25000.pkl',
     ],
 
