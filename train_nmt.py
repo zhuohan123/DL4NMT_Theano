@@ -104,6 +104,12 @@ def main():
                         help='Dropout rate for rnn hidden states, default is False (not use dropout)')
     parser.add_argument('--dropout_out', action="store", metavar="dropout_out", dest="dropout_out", type=float, default=False,
                         help='Dropout rate before softmax, default is False (not use dropout)')
+
+    parser.add_argument('--zoneout_h', action="store", metavar="zoneout", dest="zoneout_h", type=float, default=False,
+                        help='Zoneout rate for LSTM hidden states (h), default is False (not use zoneout)')
+    parser.add_argument('--zoneout_c', action="store", metavar="zoneout", dest="zoneout_c", type=float, default=False,
+                        help='Zoneout rate for LSTM hidden states (c), default is False (not use zoneout)')
+
     parser.add_argument('--unit_size', action='store', default=2, type=int, dest='unit_size',
                         help='Number of unit size, default is %(default)s')
     # TODO: rename this option to decoder_unit_size in future
@@ -227,6 +233,12 @@ def main():
         os.environ['THEANO_FLAGS'] = 'device=cuda{},floatX=float32'.format(theano_id)
         sys.stdout.flush()
 
+    zoneout_params = False
+    if args.zoneout_h or args.zoneout_c:
+        zoneout_h = args.zoneout_h if args.zoneout_h else 0.0
+        zoneout_c = args.zoneout_c if args.zoneout_c else 0.0
+        zoneout_params = (zoneout_h, zoneout_c)
+
     from libs.nmt import train
 
     train(
@@ -307,6 +319,7 @@ def main():
         start_from_histo_data =  args.start_from_histo_data,
         fine_tune_type= args.finetune_type,
         zhen = zhen,
+        zoneout_params=zoneout_params,
     )
 
 

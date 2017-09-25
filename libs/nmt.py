@@ -155,6 +155,8 @@ def train(dim_word=100,  # word vector dimensionality
           start_from_histo_data = False,
           zhen = False,
 
+          zoneout_params=False,
+
           ):
     model_options = locals().copy()
 
@@ -275,15 +277,15 @@ Start Time = {}
     trng, use_noise, \
         x, x_mask, y, y_mask, \
         opt_ret, \
-        cost, test_cost, x_emb = model.build_model()
+        cost, test_cost, x_emb, stochastic_updates = model.build_model()
     inps = [x, x_mask, y, y_mask]
 
     print 'Building sampler'
-    f_init, f_next = model.build_sampler(trng=trng, use_noise=use_noise, batch_mode=True)
+    f_init, f_next = model.build_sampler(trng=trng, use_noise=use_noise, batch_mode=True, updates=stochastic_updates)
 
     # before any regularizer
     print 'Building f_log_probs...',
-    f_log_probs = theano.function(inps, cost, profile=profile)
+    f_log_probs = theano.function(inps, cost, profile=profile, updates=stochastic_updates)
     print 'Done'
     sys.stdout.flush()
     test_cost = test_cost.mean() #FIXME: do not regularize test_cost here
@@ -295,7 +297,7 @@ Start Time = {}
     cost = regularize_alpha_weights(cost, alpha_c, model_options, x_mask, y_mask, opt_ret)
 
     print 'Building f_cost...',
-    f_cost = theano.function(inps, test_cost, profile=profile)
+    f_cost = theano.function(inps, test_cost, profile=profile, updates=stochastic_updates)
     print 'Done'
 
     if plot_graph is not None:
@@ -325,7 +327,9 @@ Start Time = {}
     given_imm_data = get_optimizer_imm_data(optimizer, given_imm, preload, uidx)
 
     f_grad_shared, f_update, grads_shared, imm_shared = Optimizers[optimizer](
-        lr, model.P, grads, inps, cost, g2=g2, given_imm_data=given_imm_data, alpha = ada_alpha)
+        lr, model.P, grads, inps, cost, g2=g2,
+        given_imm_data=given_imm_data, alpha=ada_alpha, stochastic_updates=stochastic_updates
+    )
     print 'Done'
 
     if dist_type == 'mpi_reduce':

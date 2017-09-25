@@ -93,6 +93,7 @@ ENV/
 
 # data
 data/
+data
 
 # model
 model/
@@ -121,3 +122,6 @@ worker.bat
 
 # Some scripts
 *count_lengths.py
+
+# Commands
+command.txt

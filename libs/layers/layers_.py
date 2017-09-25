@@ -3,7 +3,7 @@
 
 from .basic import *
 from .gru import *
-from .lstm import *
+from .lstm_zoneout import *
 
 __author__ = 'fyabc'
 

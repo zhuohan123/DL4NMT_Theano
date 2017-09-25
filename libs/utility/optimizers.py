@@ -1,5 +1,6 @@
 import theano
 import theano.tensor as tensor
+from theano.updates import OrderedUpdates
 import numpy
 
 from .utils import itemlist
@@ -66,6 +67,7 @@ def adam(lr, tparams, grads, inp, cost, beta1=0.9, beta2=0.999, e=1e-8, **kwargs
     g2 = kwargs.pop('g2', None)
     given_imm_data = kwargs.pop('given_imm_data', None)
     dump_imm = kwargs.pop('dump_imm', False)
+    stochastic_updates = kwargs.pop('stochastic_updates', OrderedUpdates())
 
     if g2 is None:
         outputs = cost
@@ -76,7 +78,7 @@ def adam(lr, tparams, grads, inp, cost, beta1=0.9, beta2=0.999, e=1e-8, **kwargs
                for k, p in tparams.iteritems()]
     gsup = [(gs, g) for gs, g in zip(gshared, grads)]
 
-    f_grad_shared = theano.function(inp, outputs, updates=gsup, profile=profile)
+    f_grad_shared = theano.function(inp, outputs, updates=gsup + stochastic_updates, profile=profile)
 
     updates = []
 
@@ -120,6 +122,7 @@ def adadelta(lr, tparams, grads, inp, cost, **kwargs):
     g2 = kwargs.pop('g2', None)
     given_imm_data = kwargs.pop('given_imm_data', None)
     alpha = kwargs.pop('alpha', 0.95)
+    stochastic_updates = kwargs.pop('stochastic_updates', OrderedUpdates())
 
     if g2 is None:
         outputs = cost
@@ -143,7 +146,7 @@ def adadelta(lr, tparams, grads, inp, cost, **kwargs):
 
     zgup = [(zg, g) for zg, g in zip(zipped_grads, grads)]
 
-    f_grad_shared = theano.function(inp, outputs, updates=zgup ,
+    f_grad_shared = theano.function(inp, outputs, updates=zgup + stochastic_updates,
                                     profile=profile)
 
     rg2up = [(rg2, alpha * rg2 + (1 - alpha) * (g ** 2))
@@ -163,6 +166,7 @@ def adadelta(lr, tparams, grads, inp, cost, **kwargs):
 
 def rmsprop(lr, tparams, grads, inp, cost, **kwargs):
     g2 = kwargs.pop('g2', None)
+    stochastic_updates = kwargs.pop('stochastic_updates', OrderedUpdates())
     if g2 is None:
         outputs = cost
     else:
@@ -183,7 +187,7 @@ def rmsprop(lr, tparams, grads, inp, cost, **kwargs):
     rg2up = [(rg2, 0.95 * rg2 + 0.05 * (g ** 2))
              for rg2, g in zip(running_grads2, grads)]
 
-    f_grad_shared = theano.function(inp, outputs, updates=zgup + rgup + rg2up,
+    f_grad_shared = theano.function(inp, outputs, updates=zgup + rgup + rg2up + stochastic_updates,
                                     profile=profile)
 
     updir = [theano.shared(p.get_value() * numpy.float32(0.),
@@ -202,6 +206,7 @@ def rmsprop(lr, tparams, grads, inp, cost, **kwargs):
 
 def sgd(lr, tparams, grads, inp, cost, **kwargs):
     g2 = kwargs.pop('g2', None)
+    stochastic_updates = kwargs.pop('stochastic_updates', OrderedUpdates())
     if g2 is None:
         outputs = cost
     else:
@@ -212,7 +217,7 @@ def sgd(lr, tparams, grads, inp, cost, **kwargs):
                for k, p in tparams.iteritems()]
     gsup = [(gs, g) for gs, g in zip(gshared, grads)]
 
-    f_grad_shared = theano.function(inp, outputs, updates=gsup,
+    f_grad_shared = theano.function(inp, outputs, updates=gsup + stochastic_updates,
                                     profile=profile)
 
     pup = [(p, p - lr * g) for p, g in zip(itemlist(tparams), gshared)]
